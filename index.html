@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="sv" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gymnasiechansen</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+
+<link rel="apple-touch-icon" href="Gymnasiechansen192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+[data-theme="light"] {
+  --bg:#f7f6f2;--ink:#0f0f0f;--subtle:#a8a69f;--muted:#d0cdc4;
+  --card:#fff;--border:#e5e3dc;--input-bg:#fff;--surface:#eeecea;
+}
+[data-theme="dark"] {
+  --bg:#111113;--ink:#eeede8;--subtle:#666462;--muted:#3a3a3e;
+  --card:#1b1b1e;--border:#2c2c30;--input-bg:#1b1b1e;--surface:#222226;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:0 0 120px;transition:background .2s,color .2s}
+
+.top-bar{max-width:680px;margin:0 auto;padding:26px 24px 0;display:flex;justify-content:space-between;align-items:center}
+.eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--subtle)}
+.theme-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:6px 13px;background:var(--surface);color:var(--subtle);border:none;border-radius:99px;cursor:pointer;transition:color .15s}
+.theme-btn:hover{color:var(--ink)}
+
+header{max-width:680px;margin:0 auto;padding:28px 24px 0}
+h1{font-size:clamp(42px,10vw,66px);font-weight:800;line-height:1.02;letter-spacing:-.025em;margin-bottom:14px}
+.sub{font-size:15px;color:var(--subtle);line-height:1.65;max-width:460px;margin-bottom:36px}
+
+.input-section{max-width:680px;margin:0 auto;padding:0 24px}
+.input-label{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.input-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.grade-group{display:flex;flex-direction:column;gap:5px}
+.grade-sublabel{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--subtle)}
+input[type="number"]{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;width:144px;padding:11px 16px;border:2px solid var(--border);border-radius:10px;background:var(--input-bg);color:var(--ink);outline:none;transition:border-color .15s;-moz-appearance:textfield}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none}
+input:focus{border-color:var(--ink)}
+.ghost-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:11px 14px;background:transparent;color:var(--subtle);border:2px dashed var(--border);border-radius:10px;cursor:pointer;transition:all .15s;white-space:nowrap;height:50px}
+.ghost-btn:hover{border-color:var(--ink);color:var(--ink);border-style:solid}
+.ghost-btn.on{border-style:solid;border-color:var(--ink);color:var(--ink);background:var(--card)}
+.primary-btn{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:11px 24px;background:var(--ink);color:var(--bg);border:none;border-radius:10px;cursor:pointer;transition:opacity .15s,transform .1s;height:50px}
+.primary-btn:hover{opacity:.82}
+.primary-btn:active{transform:scale(.98)}
+.error{font-family:'DM Mono',monospace;font-size:12px;color:#c0392b;margin-top:9px;display:none}
+
+/* CALCULATOR */
+.calc-section{max-width:680px;margin:20px auto 0;padding:0 24px}
+.calc-toggle{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--subtle);background:none;border:none;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:7px;transition:color .15s}
+.calc-toggle:hover{color:var(--ink)}
+.calc-toggle .arr{transition:transform .2s;display:inline-block}
+.calc-toggle.open .arr{transform:rotate(90deg)}
+.calc-panel{display:none;margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.calc-panel.open{display:block}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:16px}
+.calc-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.calc-subject{font-size:13px;font-weight:600;flex:1}
+.calc-input{font-family:'DM Mono',monospace!important;font-size:16px!important;width:72px!important;padding:7px 10px!important;text-align:center;height:auto!important}
+.calc-footer{margin-top:8px;padding-top:14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.calc-output{font-family:'DM Mono',monospace;font-size:13px;color:var(--subtle);line-height:1.8}
+.calc-output strong{color:var(--ink);font-size:20px}
+.calc-use-btn{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:9px 18px;background:var(--ink);color:var(--bg);border:none;border-radius:8px;cursor:pointer;transition:opacity .15s}
+.calc-use-btn:hover{opacity:.8}
+
+/* RESULTS */
+#results{max-width:680px;margin:40px auto 0;padding:0 24px;display:none}
+.results-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
+.results-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.results-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.grade-pill{font-family:'DM Mono',monospace;font-size:13px;padding:4px 11px;border-radius:99px;background:var(--ink);color:var(--bg)}
+.grade-pill.b{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+
+
+/* CONTROLS */
+.controls-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center;justify-content:space-between}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:5px 13px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;transition:all .15s}
+.filter-btn:hover{border-color:var(--ink);color:var(--ink)}
+.filter-btn.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sort-cycle-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;padding:5px 13px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--subtle);cursor:pointer;transition:all .15s;white-space:nowrap}
+.sort-cycle-btn:hover{border-color:var(--ink);color:var(--ink)}
+
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);margin:24px 0 10px}
+
+/* CARDS */
+.school-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;overflow:hidden;transition:box-shadow .15s}
+.school-card:hover{box-shadow:0 2px 16px rgba(0,0,0,.08)}
+.school-card.green {border-left:3px solid #3a9e72}
+.school-card.yellow{border-left:3px solid #e8b800}
+.school-card.orange{border-left:3px solid #f07030}
+.school-card.red   {border-left:3px solid #d94040}
+.card-main{padding:16px 18px 14px;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto auto auto;column-gap:14px;cursor:pointer;user-select:none}
+.school-name{grid-column:1;grid-row:1;font-size:15px;font-weight:700;line-height:1.3;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.ib-badge{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:#ddeeff;color:#1a3a5c;flex-shrink:0}
+[data-theme="dark"] .ib-badge{background:#1a2d45;color:#7ab8e8}
+.school-meta{grid-column:1;grid-row:2;font-family:'DM Mono',monospace;font-size:11px;color:var(--subtle);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.warn-pill{font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:99px;background:#fff3b0;color:#7a5800}
+[data-theme="dark"] .warn-pill{background:#2d2300;color:#e8b800}
+.trend-row{grid-column:1;grid-row:3;display:flex;align-items:center;gap:8px;margin-top:7px}
+.trend-text{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.sparkline svg{color:var(--subtle);overflow:visible}
+.next-step{grid-column:1;grid-row:4;font-family:'DM Mono',monospace;font-size:10px;color:var(--subtle);margin-top:5px}
+.next-step b{color:var(--ink)}
+.ib-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--subtle)}
+.chance-block{grid-column:2;grid-row:1/5;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:5px;min-width:52px}
+.chance-single{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.chance-compare{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.cmp-row{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.cmp-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle)}
+.pct{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;line-height:1}
+.pct.sm{font-size:18px}
+.dot{width:7px;height:7px;border-radius:50%}
+.c-green{color:#3a9e72}.c-yellow{color:#c49a00}.c-orange{color:#e05a1a}.c-red{color:#d94040}
+.d-green{background:#3a9e72}.d-yellow{background:#e8b800}.d-orange{background:#f07030}.d-red{background:#d94040}
+
+/* CARD INFO */
+.card-info{display:none;border-top:1px solid var(--border);padding:14px 18px}
+.card-info.open{display:block}
+.info-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.info-key{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);padding-top:2px}
+.info-val{color:var(--ink);line-height:1.55}
+.info-val a{color:var(--ink);transition:opacity .15s}
+.info-val a:hover{opacity:.6}
+
+.no-results{font-family:'DM Mono',monospace;font-size:13px;color:var(--subtle);padding:28px 0;text-align:center}
+
+/* MAP */
+.map-section{margin-top:36px}
+.map-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);margin-bottom:10px}
+#map{height:320px;border-radius:14px;border:1px solid var(--border);overflow:hidden}
+[data-theme="dark"] .leaflet-tile{filter:brightness(.6) invert(1) contrast(3) hue-rotate(200deg) saturate(.3) brightness(.7)}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px 20px;margin-top:28px;padding-top:16px;border-top:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:11px;color:var(--subtle)}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.note{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:14px;line-height:1.85}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span class="eyebrow">Nyland · Svenska gymnasier</span>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙 Mörkt läge</button>
+</div>
+
+<header>
+  <h1>Gymnasiechansen</h1>
+  <p class="sub">Ange ditt medeltal för att se dina chanser till de svenska gymnasierna och IB i Nyland. Prognosen baseras på trenden 2023–2025.</p>
+</header>
+
+<div class="input-section">
+  <label class="input-label">Medeltal</label>
+  <div class="input-row">
+    <div class="grade-group">
+      <span class="grade-sublabel">Ditt medeltal</span>
+      <input type="number" id="gradeA" min="4" max="10" step="0.01" placeholder="8.43">
+    </div>
+    <button class="ghost-btn" id="cmpToggle" onclick="toggleCompare()">+ Jämför med</button>
+    <div class="grade-group" id="gradeBWrap" style="display:none">
+      <span class="grade-sublabel">Jämför med</span>
+      <input type="number" id="gradeB" min="4" max="10" step="0.01" placeholder="8.80">
+    </div>
+    <button class="primary-btn" onclick="calculate()">Beräkna →</button>
+  </div>
+  <p class="error" id="error">Ange ett giltigt medeltal (4,00–10,00).</p>
+</div>
+
+<!-- CALCULATOR -->
+<div class="calc-section">
+  <button class="calc-toggle" id="calcToggle" onclick="toggleCalc()">
+    <span class="arr">▶</span> Räkna ut ditt medeltal
+  </button>
+  <div class="calc-panel" id="calcPanel">
+    <div class="calc-grid" id="calcGrid"></div>
+    <div class="calc-footer">
+      <div>
+        <div class="calc-output" id="calcOut">Fyll i alla 12 ämnen ovan</div>
+        <div class="calc-output" id="calcOutIB" style="display:none"></div>
+      </div>
+      <button class="calc-use-btn" id="calcUseBtn" style="display:none" onclick="useCalc()">Använd →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results">
+  <div class="results-header">
+    <div class="results-left">
+      <span class="results-title">Resultat</span>
+      <div id="gradePills"></div>
+    </div>
+
+  </div>
+
+  <div class="controls-row">
+    <div class="filters">
+      <button class="filter-btn active" data-f="all"    onclick="setFilter('all')">Alla</button>
+      <button class="filter-btn"        data-f="chance" onclick="setFilter('chance')">Har chans till</button>
+      <button class="filter-btn"        data-f="gym"    onclick="setFilter('gym')">Gymnasier</button>
+      <button class="filter-btn"        data-f="ib"     onclick="setFilter('ib')">IB</button>
+    </div>
+    <button class="sort-cycle-btn" id="sortCycleBtn" onclick="cycleSort()">↕ Svårighet</button>
+  </div>
+
+  <div id="cards"></div>
+
+  <div class="map-section">
+    <p class="map-label">Karta</p>
+    <div id="map"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot d-green"></div>Säker (≥75%)</div>
+    <div class="legend-item"><div class="legend-dot d-yellow"></div>God chans (50–74%)</div>
+    <div class="legend-item"><div class="legend-dot d-orange"></div>Osäker (25–49%)</div>
+    <div class="legend-item"><div class="legend-dot d-red"></div>Liten chans (&lt;25%)</div>
+  </div>
+
+  <p class="note">
+    * Prognos 2026 = linjär extrapolering baserad på gränserna 2023–2025.<br>
+    * Förra årets gräns = 2025. Prognosen är ett estimat, inte en garanti.<br>
+    * Mattliden IB: medeltal räknas med koefficient 2 för matematik och engelska (÷14).<br>
+    * Kartan visar ungefärliga positioner.
+  </p>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const SCHOOLS = [
+  { id:'grankulla', name:'Gymnasiet Grankulla samskola', type:'Gymnasie',
+    y2023:8.67, y2024:8.46, y2025:8.67,
+    address:'Läntinen Koulupolku 1–3, 02700 Grankulla',
+    profile:'Liten och personlig skola (~300 studerande) i Grankulla. Fokus på aktivt lärande, god pedagogik och välmående. En miljö där alla känner alla.',
+    url:'https://www.ggs.fi', lat:60.21445, lng:24.72388 },
+
+  { id:'larkan', name:'Gymnasiet Lärkan', type:'Gymnasie',
+    y2023:8.15, y2024:8.23, y2025:8.42,
+    address:'Stormyrvägen 22, 00320 Helsingfors',
+    profile:'Profilgymnasium i Södra Haga, Helsingfors, med naturvetenskapsspår (MAX) och samhällslärospår (SAM). Cirka 500 studerande med stark akademisk profil.',
+    url:'https://www.hel.fi/sv/fostran-och-utbildning/gymnasiet-larkan', lat:60.2167, lng:24.8910 },
+
+  { id:'brando', name:'Brändö gymnasium', type:'Gymnasie',
+    y2023:8.17, y2024:8.54, y2025:8.25,
+    address:'Ståhlbergsvägen 2, 00570 Helsingfors',
+    profile:'Enda svenska idrottsgymnasiet i södra Finland, beläget på Brändö i Helsingfors. Kombinerar krävande studier med elitidrott. Cirka 420 studerande.',
+    url:'https://www.hel.fi/sv/fostran-och-utbildning/brando-gymnasium', lat:60.18596, lng:25.00219 },
+
+  { id:'mattliden_ib', name:'Mattlidens gymnasium IB', type:'IB',
+    y2023:8.83, y2024:8.64, y2025:8.71,
+    address:'Matinsyrjä 1, 02230 Esbo',
+    profile:'Enda svenska IB Diploma Programme-skolan i huvudstadsregionen. Internationellt erkänt tvåårigt program som undervisas på engelska. Öppnar dörrar till universitet världen över.',
+    url:'https://www.espoo.fi/sv/mattlidens-gymnasium', lat:60.16383, lng:24.75109 },
+
+  { id:'tolo', name:'Tölö gymnasium', type:'Gymnasie',
+    y2023:7.17, y2024:7.92, y2025:8.00,
+    address:'Sandelsgatan 3, 00260 Helsingfors',
+    profile:'Kreativt profilgymnasium i Tölö, Helsingfors, med inriktningar inom bildkonst, musik och humanekologi. Stark stigande trend de senaste åren.',
+    url:'https://www.hel.fi/sv/fostran-och-utbildning/tolo-gymnasium', lat:60.1793, lng:24.9214 },
+
+  { id:'mattliden', name:'Mattlidens gymnasium', type:'Gymnasie',
+    y2023:7.52, y2024:7.67, y2025:7.58,
+    address:'Matinsyrjä 1, 02230 Esbo',
+    profile:'Välrenommerad skola i Mattby, Esbo (~540 studerande) med en inkluderande och trygg miljö. Kärnvärdena empati, nyfikenhet, gemenskap och integritet genomsyrar all verksamhet.',
+    url:'https://www.espoo.fi/sv/mattlidens-gymnasium', lat:60.16383, lng:24.75109 },
+
+  { id:'helsinge', name:'Helsinge gymnasium', type:'Gymnasie',
+    y2023:7.25, y2024:7.58, y2025:7.50,
+    address:'Övitsbölevägen 3, 01510 Vanda',
+    profile:'Liten och trivsam skola i Vanda (~150 studerande). Personlig atmosfär med nära relationer mellan studerande och personal.',
+    url:'https://helsingegymnasium.vantaa.fi', lat:60.28217, lng:24.98017 },
+
+  { id:'steiner', name:'Rudolf Steiner skolan', type:'Gymnasie',
+    y2023:7.20, y2024:7.30, y2025:7.45,
+    address:'Lärkträdsvägen 6, 00270 Helsingfors',
+    profile:'Gymnasiet i Munksnäs, Helsingfors, bygger på steinerpedagogik med betoning på kreativitet, konstnärliga ämnen och en helhetssyn på lärandet.',
+    url:'https://www.steiner.fi', lat:60.19634, lng:24.90782 },
+
+  { id:'kyrkslätt', name:'Kyrkslätts gymnasium', type:'Gymnasie',
+    y2023:7.08, y2024:7.33, y2025:7.33,
+    address:'Wiksvägen 3, 02400 Kyrkslätt',
+    profile:'Välkomnande gymnasium i Kyrkslätt med allmän linje samt en populär företagarlinje med fokus på UF-företagande och praktiska affärskunskaper.',
+    url:'https://www.kygy.fi', lat:60.12266, lng:24.43591 },
+];
+
+const SUBJECTS = [
+  {id:'math',  label:'Matematik'},
+  {id:'phys',  label:'Fysik'},
+  {id:'chem',  label:'Kemi'},
+  {id:'swe',   label:'Svenska och litteratur'},
+  {id:'bio',   label:'Biologi'},
+  {id:'health',label:'Hälsokunskap'},
+  {id:'eng',   label:'Engelska'},
+  {id:'hist',  label:'Historia'},
+  {id:'rel',   label:'Religion / Livsåskådning'},
+  {id:'fi',    label:'Finska'},
+  {id:'soc',   label:'Samhällslära'},
+  {id:'geo',   label:'Geografi'},
+];
+
+// ── STATE ─────────────────────────────────────────────────────
+let compareMode=false, filter='all', sortMode='difficulty';
+let gA=null, gB=null;
+let calcA=null, calcIB=null;
+let map=null, markers=[];
+
+// ── HELPERS ───────────────────────────────────────────────────
+const predict = s => {
+  const slope = (s.y2025 - s.y2023) / 2;
+  return Math.round((s.y2025 + slope) * 100) / 100;
+};
+const sigmoid = x => 1 / (1 + Math.exp(-x));
+function getChance(grade, predicted) {
+  if (grade >= 10) return 100;
+  const raw = sigmoid(5 * (grade - predicted));
+  return Math.min(99, Math.max(1, Math.round(raw * 100)));
+}
+const getCls = pct => pct >= 75 ? 'green' : pct >= 50 ? 'yellow' : pct >= 25 ? 'orange' : 'red';
+const fmt = n => n.toFixed(2).replace('.', ',');
+const arrow = s => s.y2025 > s.y2023 + 0.05 ? '↑' : s.y2025 < s.y2023 - 0.05 ? '↓' : '→';
+
+function effectiveGrade(school, grade) {
+  if (school.id === 'mattliden_ib' && calcIB !== null && grade === gA) return calcIB;
+  return grade;
+}
+
+function spark(s) {
+  const p = predict(s);
+  const vals = [s.y2023, s.y2024, s.y2025, p];
+  const mn = Math.min(...vals)-0.05, mx = Math.max(...vals)+0.05;
+  const W=56, H=18;
+  const pts = vals.map((v,i) => {
+    const x=(i/3)*W, y=H-((v-mn)/(mx-mn))*H;
+    return [x.toFixed(1),y.toFixed(1)];
+  });
+  const solid = pts.slice(0,3).map(p=>p.join(',')).join(' ');
+  const [x2,y2]=pts[2],[x3,y3]=pts[3];
+  return `<span class="sparkline"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+    <polyline points="${solid}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${x2}" y1="${y2}" x2="${x3}" y2="${y3}" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2" stroke-linecap="round"/>
+    <circle cx="${x3}" cy="${y3}" r="2" fill="currentColor"/>
+  </svg></span>`;
+}
+
+// ── THEME ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const dark = html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = dark ? '🌙 Mörkt läge' : '☀️ Ljust läge';
+}
+
+// ── COMPARE ───────────────────────────────────────────────────
+function toggleCompare() {
+  compareMode = !compareMode;
+  const btn = document.getElementById('cmpToggle');
+  btn.classList.toggle('on', compareMode);
+  btn.textContent = compareMode ? '− Jämför med' : '+ Jämför med';
+  document.getElementById('gradeBWrap').style.display = compareMode ? 'flex' : 'none';
+}
+
+// ── CALCULATOR ────────────────────────────────────────────────
+function buildCalc() {
+  document.getElementById('calcGrid').innerHTML = SUBJECTS.map(s =>
+    `<div class="calc-row">
+      <span class="calc-subject">${s.label}</span>
+      <input type="number" class="calc-input" id="c_${s.id}" min="4" max="10" step="0.01" placeholder="–" oninput="recalc()">
+    </div>`
+  ).join('');
+}
+
+function recalc() {
+  const vals = SUBJECTS.map(s => parseFloat(document.getElementById('c_'+s.id).value));
+  const filled = vals.filter(v => !isNaN(v) && v>=4 && v<=10);
+
+  if (filled.length < 12) {
+    document.getElementById('calcOut').textContent = `Fyll i alla ämnen (${filled.length}/12)`;
+    document.getElementById('calcOutIB').style.display = 'none';
+    document.getElementById('calcUseBtn').style.display = 'none';
+    calcA = null; calcIB = null; return;
+  }
+
+  const sum = vals.reduce((a,b) => a+b, 0);
+  calcA = Math.round(sum/12 * 100)/100;
+
+  const mi = SUBJECTS.findIndex(s=>s.id==='math');
+  const ei = SUBJECTS.findIndex(s=>s.id==='eng');
+  calcIB = Math.round((sum + vals[mi] + vals[ei]) / 14 * 100) / 100;
+
+  document.getElementById('calcOut').innerHTML = `Ditt medeltal: <strong>${fmt(calcA)}</strong>`;
+  const ibEl = document.getElementById('calcOutIB');
+  ibEl.innerHTML = `Mattliden IB-medeltal: <strong>${fmt(calcIB)}</strong>`;
+  ibEl.style.display = 'block';
+  document.getElementById('calcUseBtn').style.display = 'block';
+}
+
+function useCalc() {
+  if (calcA === null) return;
+  // Use dot notation for number input (not comma)
+  document.getElementById('gradeA').value = calcA.toFixed(2);
+  calculate();
+}
+
+function toggleCalc() {
+  document.getElementById('calcToggle').classList.toggle('open');
+  document.getElementById('calcPanel').classList.toggle('open');
+}
+
+// ── CALCULATE ─────────────────────────────────────────────────
+function calculate() {
+  const rawA = document.getElementById('gradeA').value.replace(',','.');
+  const a = parseFloat(rawA);
+  const err = document.getElementById('error');
+
+  if (isNaN(a) || a < 4 || a > 10) {
+    err.style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    return;
+  }
+
+  let b = null;
+  if (compareMode) {
+    const rawB = document.getElementById('gradeB').value.replace(',','.');
+    b = parseFloat(rawB);
+    if (isNaN(b) || b < 4 || b > 10) {
+      err.style.display = 'block';
+      document.getElementById('results').style.display = 'none';
+      return;
+    }
+  }
+
+  err.style.display = 'none';
+  gA = a; gB = b;
+
+  let pills = `<span class="grade-pill">${fmt(a)}</span>`;
+  if (b !== null) pills += `<span class="grade-pill b">${fmt(b)}</span>`;
+  document.getElementById('gradePills').innerHTML = pills;
+
+  filter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.f === 'all'));
+
+  renderCards();
+  const res = document.getElementById('results');
+  res.style.display = 'block';
+  res.scrollIntoView({behavior:'smooth', block:'start'});
+  setTimeout(initMap, 120);
+}
+
+// ── FILTER / SORT ─────────────────────────────────────────────
+function setFilter(f) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.f === f));
+  renderCards();
+  updateMap();
+}
+
+const SORT_CYCLE = [
+  {mode:'difficulty', label:'↕ Svårighet'},
+  {mode:'az',         label:'A–Ö'},
+  {mode:'za',         label:'Ö–A'},
+];
+function cycleSort() {
+  const idx = SORT_CYCLE.findIndex(s => s.mode === sortMode);
+  const next = SORT_CYCLE[(idx + 1) % SORT_CYCLE.length];
+  sortMode = next.mode;
+  document.getElementById('sortCycleBtn').textContent = next.label;
+  renderCards();
+}
+
+// ── RENDER CARDS ──────────────────────────────────────────────
+function renderCards() {
+  if (gA === null) return;
+
+  let list = [...SCHOOLS];
+
+  if (filter === 'chance') list = list.filter(s => {
+    const g = effectiveGrade(s, gA);
+    const pct = getChance(g, predict(s));
+    return pct >= 50;
+  });
+  else if (filter === 'gym') list = list.filter(s => s.type === 'Gymnasie');
+  else if (filter === 'ib')  list = list.filter(s => s.type === 'IB');
+
+  if (sortMode === 'difficulty') {
+    list.sort((a, b) => predict(b) - predict(a));
+  } else if (sortMode === 'az') {
+    list.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
+  } else if (sortMode === 'za') {
+    list.sort((a, b) => b.name.localeCompare(a.name, 'sv'));
+  }
+
+  let html = '';
+  if (list.length === 0) {
+    html = '<p class="no-results">Inga skolor matchar filtret.</p>';
+  } else {
+    list.forEach(s => { html += cardHTML(s); });
+  }
+
+  document.getElementById('cards').innerHTML = html;
+}
+
+function cardHTML(s) {
+  const p  = predict(s);
+  const eA = effectiveGrade(s, gA);
+  const pA = getChance(eA, p);
+  const cA = getCls(pA);
+
+  const isWarn = Math.abs(eA - p) <= 0.15;
+  const warnBadge = isWarn ? '<span class="warn-pill">⚠ Nära gränsen</span>' : '';
+  const ibBadge   = s.type==='IB' ? '<span class="ib-badge">IB</span>' : '';
+  const ibNote    = (s.id==='mattliden_ib' && calcIB!==null)
+    ? `<span class="ib-note">(viktat ${fmt(eA)})</span>` : '';
+
+  let nextStep = '';
+  if (pA < 50) {
+    const need = Math.round(Math.max(0.01, p - eA + 0.01) * 100) / 100;
+    if (need <= 2.0) nextStep = `<div class="next-step">Höj med <b>+${fmt(need)}</b> för att nå denna skola</div>`;
+  }
+
+  let chanceHTML = '';
+  if (gB !== null) {
+    const eB = effectiveGrade(s, gB);
+    const pB = getChance(eB, p);
+    const cB = getCls(pB);
+    chanceHTML = `<div class="chance-compare">
+      <div class="cmp-row"><span class="cmp-label">Du</span><span class="pct sm c-${cA}">${pA}%</span><span class="dot d-${cA}"></span></div>
+      <div class="cmp-row"><span class="cmp-label">Jmfr</span><span class="pct sm c-${cB}">${pB}%</span><span class="dot d-${cB}"></span></div>
+    </div>`;
+  } else {
+    chanceHTML = `<div class="chance-single"><span class="pct c-${cA}">${pA}%</span><span class="dot d-${cA}"></span></div>`;
+  }
+
+  return `<div class="school-card ${cA}" id="card-${s.id}">
+    <div class="card-main" onclick="toggleInfo('${s.id}')">
+      <div class="school-name">${s.name}${ibBadge}${ibNote}</div>
+      <div class="school-meta">Gräns 2025: ${fmt(s.y2025)}&nbsp;·&nbsp;Prognos 2026: ${fmt(p)}${warnBadge ? '&nbsp;'+warnBadge : ''}</div>
+      <div class="trend-row">${spark(s)}<span class="trend-text">${arrow(s)}&nbsp;${fmt(s.y2023)} → ${fmt(s.y2024)} → ${fmt(s.y2025)} → <em>${fmt(p)}</em></span></div>
+      ${nextStep}
+      <div class="chance-block">${chanceHTML}</div>
+    </div>
+    <div class="card-info" id="info-${s.id}">
+      <div class="info-grid">
+        <span class="info-key">Profil</span><span class="info-val">${s.profile}</span>
+        <span class="info-key">Adress</span><span class="info-val">${s.address}</span>
+        <span class="info-key">Hemsida</span><span class="info-val"><a href="${s.url}" target="_blank">${s.url.replace('https://','')}</a></span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleInfo(id) {
+  document.getElementById('info-'+id).classList.toggle('open');
+}
+
+// ── MAP ───────────────────────────────────────────────────────
+function initMap() {
+  if (map) { updateMap(); return; }
+  map = L.map('map', {zoomControl:true}).setView([60.21, 24.82], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:18
+  }).addTo(map);
+  updateMap();
+}
+
+function updateMap() {
+  if (!map) return;
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  const col = {green:'#3a9e72', yellow:'#e8b800', orange:'#f07030', red:'#d94040'};
+
+  let list = [...SCHOOLS];
+  if (filter === 'gym') list = list.filter(s => s.type==='Gymnasie');
+  if (filter === 'ib')  list = list.filter(s => s.type==='IB');
+
+  list.forEach(s => {
+    const p   = predict(s);
+    const g   = gA !== null ? effectiveGrade(s, gA) : 7.5;
+    const pct = gA !== null ? getChance(g, p) : 50;
+    const cls = getCls(pct);
+    const c   = col[cls];
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="width:13px;height:13px;border-radius:50%;background:${c};border:2px solid white;box-shadow:0 1px 5px rgba(0,0,0,.35)"></div>`,
+      iconSize:[13,13], iconAnchor:[6,6]
+    });
+    const m = L.marker([s.lat, s.lng], {icon})
+      .addTo(map)
+      .bindPopup(`<strong>${s.name}</strong><br>${s.address}<br>Prognos 2026: ${fmt(p)}${gA?'<br>Chans: '+pct+'%':''}`);
+    markers.push(m);
+  });
+}
+
+
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  buildCalc();
+  const p = new URLSearchParams(location.search);
+  if (p.has('a')) {
+    const a = parseFloat(p.get('a'));
+    if (!isNaN(a)) {
+      document.getElementById('gradeA').value = a.toFixed(2);
+      if (p.has('b')) {
+        const b = parseFloat(p.get('b'));
+        if (!isNaN(b)) { toggleCompare(); document.getElementById('gradeB').value = b.toFixed(2); }
+      }
+      calculate();
+    }
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+init();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>

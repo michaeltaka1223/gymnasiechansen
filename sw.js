@@ -1,4 +1,4 @@
-const CACHE = "gymnasiechansen-v1";
+const CACHE = "gymnasiechansen-v2";
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -18,4 +18,5 @@ self.addEventListener("fetch", event => {
       return response || fetch(event.request);
     })
   );
+
 });

@@ -306,8 +306,11 @@ var SORT_CYCLE = [
 ];
 
 function predict(s) {
-  var slope = (s.y2025 - s.y2023) / 2;
-  return Math.round((s.y2025 + slope) * 100) / 100;
+  var change1 = s.y2024 - s.y2023;
+  var change2 = s.y2025 - s.y2024;
+  var weighted = change1 * 0.3 + change2 * 0.7;
+  var capped = Math.max(-0.15, Math.min(0.15, weighted));
+  return Math.round((s.y2025 + capped) * 100) / 100;
 }
 
 function sigmoid(x) {
